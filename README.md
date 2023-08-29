@@ -1,5 +1,10 @@
-IIC11005
+## IIC11005
 
-Carpeta VJ/: Archivos juego, activida VJ.
+### Carpeta VJ/
+Archivos juego, activida VJ.
 
-Archivo index.html: Página actividad OSUC.
+- main.py: corre el juego.
+
+### Archivo index.html
+Página actividad OSUC.
+¡Con confetti!

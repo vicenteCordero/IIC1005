@@ -197,6 +197,7 @@ def update_scores(actual_score, dificultad):
             else:
                 writer.writerow(row)
 
+    os.remove('elements/records.csv')
     os.rename('elements/tmp.csv', 'elements/records.csv')
 
 

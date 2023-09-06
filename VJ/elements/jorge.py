@@ -7,6 +7,8 @@ from pygame.locals import (
     K_UP, K_DOWN, K_LEFT, K_RIGHT, RLEACCEL,
     K_w, K_a, K_s, K_d)
 
+from elements.parametros import VIDAS
+
 
 JorgePNG = pygame.image.load('assets/JorgeVJ.png')
 JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
@@ -23,6 +25,7 @@ class Player(pygame.sprite.Sprite):
         self.screen_height = SCREEN_HEIGHT
 
         self.speed = user_speed
+        self.vidas = VIDAS
 
     def update(self, pressed_keys):
         if pressed_keys[K_UP] or pressed_keys[K_w]:
@@ -42,3 +45,9 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom > self.screen_height:
             self.rect.bottom = self.screen_height
+
+    def die(self):
+        self.vidas -= 1
+        self.rect.move_ip(0, 0)
+
+        return self.vidas

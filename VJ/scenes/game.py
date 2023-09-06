@@ -1,23 +1,32 @@
-'''
-Hola este es modulo game,
-este modulo manejara la escena donde ocurre nuestro juego
-'''
-
 import pygame
 
-from pygame.locals import (K_ESCAPE, KEYDOWN, QUIT, K_f, K_m, K_d)
+from pygame.locals import (K_ESCAPE, KEYDOWN, QUIT, K_p, K_m, K_d)
 
 from elements.jorge import Player
 
-from elements.entities import Enemy, Coin
+from elements.entities import Enemy, Heart
 
-from elements.parametros import ENEMY_RATE_MS, ENEM_VELOC_RANGE, USER_SPEED
-
-from elements.parametros import font_name
+from elements.parametros import (ENEMY_RATE_MS, ENEM_VELOC_RANGE, USER_SPEED,
+                                font_name,menu_song, game_song)
 
 import csv
 
 import os
+
+import time
+
+
+pygame.init()
+
+big_font = pygame.font.Font(font_name, 50)
+big_font.bold = True
+
+medium_font = pygame.font.Font(font_name, 30)
+medium_font.bold = True
+
+small_font = pygame.font.Font(font_name, 15)
+small_font.bold = True
+
 
 def cargar_puntajes():
     with open('elements/records.csv', 'r') as file:
@@ -32,7 +41,9 @@ def cargar_puntajes():
 
 
 def StartScene(dificultad):
-    pygame.init()
+    # config music y playlist
+    pygame.mixer.music.load(game_song)
+    pygame.mixer.music.play(-1)
 
     SCREEN_WIDTH = 1000  # revisar ancho de la imagen de fondo
     SCREEN_HEIGHT = 750  # revisar alto de la imagen de fondo
@@ -40,6 +51,12 @@ def StartScene(dificultad):
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     background_image = pygame.image.load('assets/pixelBackground.jpg').convert()
 
+    # set enemies speed
+    enemy_speed_range = ENEM_VELOC_RANGE[dificultad]
+    
+    # add music
+    pygame.mixer.music.unpause()
+    
     # creamos el reloj del juego
     clock = pygame.time.Clock()
     # contador de tiempo
@@ -59,17 +76,38 @@ def StartScene(dificultad):
     all_sprites.add(player)
 
     # generador monedas
-    addcoin = pygame.USEREVENT + 2
-    coins = pygame.sprite.Group()
-    pygame.time.set_timer(addcoin, 6000)
-    time_coin = -1
-    active_coin = -10
+    addheart = pygame.USEREVENT + 2
+    hearts = pygame.sprite.Group()
+    pygame.time.set_timer(addheart, 6000)
+
+    # texto
+    vidas_text = medium_font.render(f'Vidas {player.vidas}', True, (255, 255, 255), (0, 0, 0))
+    vidas_rect = vidas_text.get_rect()
+    vidas_rect.center = (100, SCREEN_HEIGHT - 50)
+
+    timer_text = medium_font.render(f'{time_count}s', True, (255, 255, 255), (0, 0, 0))
+    timer_rect = timer_text.get_rect()
+    timer_rect.center = (100, SCREEN_HEIGHT - 100)
     
     running = True
 
     while running:
+        
+        if time_count == 15 and dificultad == 'Progresivo':
+            ADDENEMY = pygame.USEREVENT + 3
+            pygame.time.set_timer(ADDENEMY, ENEMY_RATE_MS['Medio'])
+            player.speed = USER_SPEED['Medio']
+            enemy_speed_range = ENEM_VELOC_RANGE['Medio']
 
+        if time_count == 30 and dificultad == 'Progresivo':
+            ADDENEMY = pygame.USEREVENT + 4
+            pygame.time.set_timer(ADDENEMY, ENEMY_RATE_MS['Dificil'])
+            player.speed = USER_SPEED['Dificil']
+            enemy_speed_range = ENEM_VELOC_RANGE['Dificil']
+        
         screen.blit(background_image, [0, 0])
+        screen.blit(vidas_text, vidas_rect)
+        screen.blit(timer_text, timer_rect)
 
         for entity in all_sprites:
             screen.blit(entity.surf, entity.rect)
@@ -77,23 +115,29 @@ def StartScene(dificultad):
         pressed_keys = pygame.key.get_pressed()
         player.update(pressed_keys)
         enemies.update()
-
+        
         if pygame.sprite.spritecollideany(player, enemies):
-            
-            player.kill()
-            
-            update_scores(time_count, dificultad)
-            menu()
-            running = False
+            # aún le quedan vidas
+            if player.die():
+                vidas_text = medium_font.render(f'Vidas {player.vidas}', True, (255, 255, 255), (0, 0, 0))
+                for enem in enemies:
+                    enem.kill()
+                for heart in hearts:
+                    heart.kill()
+            # muere definitivo :(
+            else:
+                player.kill()
+                pygame.mixer.music.play(-1)
+                update_scores(time_count, dificultad)
+                menu()
+                running = False
 
-        if pygame.sprite.spritecollideany(player, coins):
+        if pygame.sprite.spritecollideany(player, hearts):
 
-            active_coin = time_count
-            for entity in coins:
-                entity.kill()
+            player.vidas += 1
+            vidas_text = medium_font.render(f'Vidas {player.vidas}', True, (255, 255, 255), (0, 0, 0))
 
-        if active_coin + 2 > time_count:
-            for entity in enemies:
+            for entity in hearts:
                 entity.kill()
         
         for event in pygame.event.get():
@@ -104,7 +148,7 @@ def StartScene(dificultad):
                     running = False
 
             elif event.type == ADDENEMY:
-                new_enemy = Enemy(SCREEN_WIDTH, SCREEN_HEIGHT, ENEM_VELOC_RANGE[dificultad])
+                new_enemy = Enemy(SCREEN_WIDTH, SCREEN_HEIGHT, enemy_speed_range)
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
             
@@ -113,16 +157,13 @@ def StartScene(dificultad):
 
             elif event.type == conteo:
                 time_count += 1
+                timer_text = medium_font.render(f'{time_count}s', True, (255, 255, 255), (0, 0, 0))
 
-            elif event.type == addcoin and not len(coins):
-                new_coin = Coin(SCREEN_WIDTH, SCREEN_HEIGHT)
-                all_sprites.add(new_coin)
-                coins.add(new_coin)
-                time_coin = time_count
-
-            elif len(coins) and time_coin + 4 < time_count:
-                for ent in coins:
-                    ent.kill()
+            # añade un corazon solo si no hay otros
+            elif event.type == addheart and not len(hearts):
+                new_heart = Heart(SCREEN_WIDTH, SCREEN_HEIGHT)
+                all_sprites.add(new_heart)
+                hearts.add(new_heart)
         
         pygame.display.flip()
 
@@ -160,33 +201,20 @@ def update_scores(actual_score, dificultad):
 
 
 def menu():
+    pygame.mixer.music.load(menu_song)
+    pygame.mixer.music.play(-1)
     
-    ''' iniciamos los modulos de pygame'''
     pygame.init()
 
-    ''' Creamos y editamos la ventana de pygame (escena) '''
-    '''definir el tamaño de la ventana'''
     SCREEN_WIDTH = 1000  # revisar ancho de la imagen de fondo
     SCREEN_HEIGHT = 750  # revisar alto de la imagen de fondo
 
-    '''crear el objeto pantalla'''
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     background_image = pygame.image.load('assets/menu_background.png').convert()
 
     puntajes = cargar_puntajes()
 
-    ''' Preparamos el gameloop '''
-    '''creamos el reloj del juego'''
     clock = pygame.time.Clock()
-
-    big_font = pygame.font.Font(font_name, 50)
-    big_font.bold = True
-
-    medium_font = pygame.font.Font(font_name, 30)
-    medium_font.bold = True
-
-    small_font = pygame.font.Font(font_name, 15)
-    small_font.bold = True
     
     # título
     menu_text = big_font.render('- JORGE  VS.  BUGS -', True, (255, 255, 255))
@@ -199,7 +227,7 @@ def menu():
     press_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 200)
 
     objs = list()
-    for i, dif in enumerate(('Facil', 'Medio', 'Dificil')):
+    for i, dif in enumerate(('Progresivo', 'Medio', 'Dificil')):
         
         for j, color in enumerate(((153, 255, 102), (200, 200, 200), (0, 255, 255))):
             
@@ -236,8 +264,8 @@ def menu():
                 if event.key == K_ESCAPE:
                     running = False
 
-                if event.key == K_f:
-                    StartScene("Facil")
+                if event.key == K_p:
+                    StartScene("Progresivo")
                     running = False
 
                 if event.key == K_m:
@@ -255,4 +283,3 @@ def menu():
 
         # FPS
         clock.tick(60)
-

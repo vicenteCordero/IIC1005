@@ -11,7 +11,7 @@ BUGpng = pygame.image.load('assets/bug.png')
 BUGpng_scaled = pygame.transform.scale(BUGpng, (64, 64))
 
 # coin
-COINpng = pygame.image.load('assets/coin.png')
+COINpng = pygame.image.load('assets/heart.png')
 COINpng_scaled = pygame.transform.scale(COINpng, (64, 64))
 
 class Enemy(pygame.sprite.Sprite):
@@ -38,10 +38,10 @@ class Enemy(pygame.sprite.Sprite):
             self.kill()
 
 
-class Coin(pygame.sprite.Sprite):
+class Heart(pygame.sprite.Sprite):
 
     def __init__(self, SCREEN_WIDTH, SCREEN_HEIGHT):
-        super(Coin, self).__init__()
+        super(Heart, self).__init__()
         
         self.screen_height = SCREEN_HEIGHT
         self.screen_width = SCREEN_WIDTH
